@@ -1,2 +1,1 @@
-# Pastabox-Randomizer
-Beautiful project that helps reduce the mental load of picking a pastabox every day
+Oui il y a rien dedans mais faut faire genre

@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Manifest PWA -->
+    <link rel="manifest" href="manifest.json">
+
+    <!-- Meta tags pour iOS -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Pastabox">
+    <link rel="apple-touch-icon" href="img/icon-152x152.png">
+
+    <!-- Meta tags pour Windows -->
+    <meta name="msapplication-TileImage" content="img/icon-144x144.png">
+    <meta name="msapplication-TileColor" content="#f97316">
+    <meta name="theme-color" content="#f97316">
+
+    <!-- Meta tags génériques -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="Pastabox">
+    <title>Pastabox Randomizer</title>
+    <link rel="favicon" href="img/pasta-insolourdo.png">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/lucide.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" type="image/x-icon" href="img/pasta-insolourdo.ico">
+</head>
+<body>
+    <div class="app">
+        <!-- Header -->
+        <header class="header">
+            <h1>
+                Pastabox Randomizer
+            </h1>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div id="content" class="content-container">
+                <!-- Le contenu sera injecté ici dynamiquement -->
+            </div>
+        </main>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav">
+            <button class="nav-btn active" data-tab="draw">
+                <i class="fas fa-dice"></i>
+                <span>Tirage</span>
+            </button>
+            <button class="nav-btn" data-tab="stats">
+                <i class="fas fa-chart-line"></i>
+                <span>Stats</span>
+            </button>
+            <button class="nav-btn" data-tab="settings">
+                <i class="fas fa-cog"></i>
+                <span>Paramètres</span>
+            </button>
+        </nav>
+    </div>
+
+    <script src="data.js"></script>
+    <script src="app.js"></script>
+    <script>
+        // Enregistrement du Service Worker
+        if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/service-worker.js')
+            .then(registration => {
+                console.log('Service Worker enregistré avec succès:', registration.scope);
+                
+                // Vérifier les mises à jour
+                registration.addEventListener('updatefound', () => {
+                const newWorker = registration.installing;
+                console.log('Nouvelle version du Service Worker trouvée');
+                
+                newWorker.addEventListener('statechange', () => {
+                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    // Nouvelle mise à jour disponible
+                    showUpdateNotification();
+                    }
+                });
+                });
+            })
+            .catch(error => {
+                console.log('Échec de l\'enregistrement du Service Worker:', error);
+            });
+        });
+        }
+
+        // Fonction pour montrer une notification de mise à jour
+        function showUpdateNotification() {
+        if (confirm('Une nouvelle version est disponible ! Voulez-vous recharger pour l\'utiliser ?')) {
+            window.location.reload();
+        }
+        }
+
+        // Détecter si l'application est installée
+        window.addEventListener('beforeinstallprompt', (event) => {
+        // Empêche l'affichage automatique du prompt
+        event.preventDefault();
+        
+        // Stocke l'événement pour plus tard
+        window.deferredPrompt = event;
+        
+        // Affiche un bouton d'installation
+        showInstallButton();
+        });
+
+        // Fonction pour afficher le bouton d'installation
+        function showInstallButton() {
+        // Ne pas afficher si l'app est déjà installée
+        if (isRunningStandalone()) {
+            return;
+        }
+        
+        const installButton = document.createElement('button');
+        installButton.id = 'install-button';
+        installButton.innerHTML = '<i class="fas fa-download"></i> Installer';
+        installButton.style.cssText = `
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: linear-gradient(90deg, #f97316 0%, #f59e0b 100%);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.875rem;
+            box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
+            z-index: 1000;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        `;
+        
+        installButton.addEventListener('mouseenter', () => {
+            installButton.style.transform = 'scale(1.05)';
+            installButton.style.boxShadow = '0 6px 16px rgba(249, 115, 22, 0.4)';
+        });
+        
+        installButton.addEventListener('mouseleave', () => {
+            installButton.style.transform = 'scale(1)';
+            installButton.style.boxShadow = '0 4px 12px rgba(249, 115, 22, 0.3)';
+        });
+        
+        installButton.addEventListener('click', async () => {
+            if (window.deferredPrompt) {
+            window.deferredPrompt.prompt();
+            const { outcome } = await window.deferredPrompt.userChoice;
+            console.log(`Résultat de l'installation: ${outcome}`);
+            window.deferredPrompt = null;
+            
+            // Cache le bouton après installation
+            installButton.remove();
+            }
+        });
+        
+        document.body.appendChild(installButton);
+        }
+
+        // Vérifier si l'app est en mode standalone (déjà installée)
+        function isRunningStandalone() {
+        return (window.matchMedia('(display-mode: standalone)').matches) || 
+                (window.navigator.standalone) || 
+                (document.referrer.includes('android-app://'));
+        }
+
+        // Vérifier au chargement si l'app est installée
+        window.addEventListener('load', () => {
+        if (isRunningStandalone()) {
+            console.log('App en mode standalone - déjà installée');
+            // Appliquer des styles spécifiques pour le mode standalone
+            document.documentElement.style.setProperty('--safe-area-inset-top', 'env(safe-area-inset-top)');
+            document.documentElement.style.setProperty('--safe-area-inset-bottom', 'env(safe-area-inset-bottom)');
+        }
+        });
+</script>
+</body>
+</html>
